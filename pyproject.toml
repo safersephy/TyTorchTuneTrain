@@ -1,0 +1,39 @@
+[project]
+name = "exercises"
+version = "0.1.0"
+description = "Add your description here"
+authors = [
+    { name = "SaferSephy", email = "t.vandervelden3@student.han.nl" }
+]
+dependencies = [
+    "loguru",
+    "pydantic",
+    "tytorch @ git+https://github.com/safersephy/TyTorch.git",
+    "mads-datasets>=0.3.12",
+    "torch>=2.4.1",
+    "torcheval>=0.0.7",
+    "mlflow>=2.16.2",
+    "ray>=2.36.0",
+    "torchvision>=0.19.1",
+    "hyperopt>=0.2.7",
+]
+readme = "README.md"
+requires-python = ">= 3.8"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.rye]
+managed = true
+dev-dependencies = [
+    "ipykernel",
+]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/exercises"]
+
+[tool.pdm]
