@@ -10,6 +10,7 @@ format:
 
 lint:
 	ruff check src
+	mypy src --ignore-missing-imports
 
 mlflow:
 	mlflow server --backend-store-uri sqlite:///mlflow.db --host 127.0.0.1

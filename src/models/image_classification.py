@@ -3,7 +3,7 @@ from torch import nn
 
 
 class NeuralNetwork(nn.Module):
-    def __init__(self, config):
+    def __init__(self, config: dict):
         super(NeuralNetwork, self).__init__()
         self.flatten = nn.Flatten()
         self.linear_relu_stack = nn.Sequential(

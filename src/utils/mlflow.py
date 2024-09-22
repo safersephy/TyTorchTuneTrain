@@ -7,7 +7,7 @@ from torch import nn
 
 def set_best_run_tag_and_log_model(
     experiment_name: str, model: nn.Module, metric_name: str, direction: str = "max"
-):
+) -> None:
     """
     Finds the run with the best metric result in an MLflow experiment (by name), sets a tag 'best_run=True',
     and logs a model to that run.
@@ -76,8 +76,8 @@ def set_best_run_tag_and_log_model(
 
 
 def getModelfromMLFlow(
-    experimentName, best_run: bool = False, runId: Optional[int] = None
-):
+    experimentName: str, best_run: bool = False, runId: Optional[int] = None
+) -> tuple[dict, dict]:
     experiment = mlflow.get_experiment_by_name(experimentName)
 
     if experiment:
