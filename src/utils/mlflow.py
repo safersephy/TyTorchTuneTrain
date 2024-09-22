@@ -1,6 +1,7 @@
+from typing import Optional
+
 import mlflow
 from loguru import logger
-from typing import Optional
 from torch import nn
 
 

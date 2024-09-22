@@ -1,18 +1,19 @@
-from mads_datasets import DatasetFactoryProvider, DatasetType
-import warnings
-import mlflow
-
 import argparse
-from torch.utils.data import DataLoader
-from torch.optim import Adam
-from torcheval.metrics import MulticlassAccuracy
-from tytorch.trainer import Trainer, EarlyStopping
-from tytorch.utils import get_device
-from torch.nn import CrossEntropyLoss
+import warnings
 from datetime import datetime
+
+import mlflow
 import mlflow.pytorch
-from utils.mlflow import getModelfromMLFlow
+from mads_datasets import DatasetFactoryProvider, DatasetType
+from torch.nn import CrossEntropyLoss
+from torch.optim import Adam
+from torch.utils.data import DataLoader
+from torcheval.metrics import MulticlassAccuracy
+from tytorch.trainer import EarlyStopping, Trainer
+from tytorch.utils import get_device
+
 from models.image_classification import cnn
+from utils.mlflow import getModelfromMLFlow
 
 warnings.simplefilter("ignore", UserWarning)
 mlflow.set_tracking_uri("sqlite:///mlflow.db")

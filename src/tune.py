@@ -1,24 +1,26 @@
-from pathlib import Path
-from mads_datasets import DatasetFactoryProvider, DatasetType
 import warnings
+from datetime import datetime
+from pathlib import Path
+
 import mlflow
-from loguru import logger
+import mlflow.pytorch
 import torch
-from torch.utils.data import DataLoader
-from torch.optim import Adam
+from loguru import logger
+from mads_datasets import DatasetFactoryProvider, DatasetType
+from ray import train, tune
+from ray.air.integrations.mlflow import MLflowLoggerCallback
+from ray.tune import TuneConfig
+from ray.tune.schedulers import ASHAScheduler
+from ray.tune.search.hyperopt import HyperOptSearch
 from torch.nn import CrossEntropyLoss
+from torch.optim import Adam
+from torch.utils.data import DataLoader
 from torcheval.metrics import MulticlassAccuracy
 from tytorch.trainer import Trainer
 from tytorch.utils import get_device
-from utils.mlflow import set_best_run_tag_and_log_model
+
 from models.image_classification import cnn
-from datetime import datetime
-import mlflow.pytorch
-from ray import train, tune
-from ray.tune.schedulers import ASHAScheduler
-from ray.tune.search.hyperopt import HyperOptSearch
-from ray.tune import TuneConfig
-from ray.air.integrations.mlflow import MLflowLoggerCallback
+from utils.mlflow import set_best_run_tag_and_log_model
 
 warnings.simplefilter("ignore", UserWarning)
 n_epochs = 2

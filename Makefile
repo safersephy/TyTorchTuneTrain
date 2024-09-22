@@ -3,6 +3,14 @@
 # Set the URI for the backend store (where MLflow metadata is stored)
 # Set the default root directory for storing artifacts (e.g., models, plots)
 # Set the host for the MLflow server to bind to (localhost in this case)
+
+format:
+	isort -v src
+	black src
+
+lint:
+	ruff check src
+
 mlflow:
 	mlflow server --backend-store-uri sqlite:///mlflow.db --host 127.0.0.1
 	
