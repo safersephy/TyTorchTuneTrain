@@ -1,3 +1,3 @@
-# exercises
+# TuneTrain
 
-Describe your project here.
+Template for tune/train phases with TyTorch
