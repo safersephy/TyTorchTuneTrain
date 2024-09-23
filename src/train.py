@@ -56,14 +56,13 @@ else:
         "model_class": cnn,
         "input_size": (32, 3, 224, 224),  # Example: batch_size, channels, height, width
         "output_size": 5,  # Number of classes
-        "lr": 1e-3,        # Learning rate
-        "dropout": 0.2,
-        "n_conv_blocks": 3,
-        "first_conv_filters": 32,
-        "conv_blocks": [32,64, 128],
+        "lr": 1e-4,        # Learning rate
+        "dropout": 0.3,
+        "num_conv_layers": 5,
+        "initial_filters": 32,
         "linear_blocks": [
-        {"out_features": 128, "dropout": 0.0},
-        {"out_features": 64, "dropout": 0.0}
+        {"out_features": 32, "dropout": 0.0},
+        {"out_features": 16, "dropout": 0.0}
         ]
     }
     modelClass = params["model_class"]
@@ -84,8 +83,10 @@ datasets = datasetfactory.create_dataset()
 trainloader = DataLoader(datasets["train"], batch_size=batch_size, shuffle=True)
 testloader = DataLoader(datasets["valid"], batch_size=batch_size, shuffle=True)
 
-model = modelClass(params).to(device)
-#summary(model.to("cpu"), input_size=params["input_size"][-3:], device="cpu")
+model = modelClass(params)
+summary(model.to("cpu"), input_size=params["input_size"][-3:], device="cpu")
+
+model = model.to(device)
 
 trainer = Trainer(
     model=model,

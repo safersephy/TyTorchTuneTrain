@@ -28,10 +28,9 @@ class ConvBlock(nn.Module):
         layers = [
             nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=0),
             nn.ReLU(),
-            nn.BatchNorm2d(out_channels)
+            nn.BatchNorm2d(out_channels),
+            nn.MaxPool2d(kernel_size=2)
         ]
-
-        layers.append(nn.MaxPool2d(kernel_size=2))
 
         self.block = nn.Sequential(*layers)
 
@@ -64,27 +63,29 @@ class cnn(nn.Module):
 
         self.convolutions = nn.ModuleList()
 
-        #TODO ombouwen filterbak
-        for i, filters in enumerate(config["conv_blocks"]):
-            in_ch = self.input_size[1] if i == 0 else config["conv_blocks"][i-1]
+      # Initial number of filters and number of layers
+        num_conv_layers = config["num_conv_layers"]
+        initial_filters = config["initial_filters"]
+
+        for i in range(num_conv_layers):
+            in_ch = self.input_size[1] if i == 0 else initial_filters * (2 ** (i - 1))
+            out_ch = initial_filters * (2 ** i)
             self.convolutions.append(
                 ConvBlock(
                     in_channels=in_ch,
-                    out_channels=filters,
+                    out_channels=out_ch,
                 )
             )
+
         self.dropout = nn.Dropout(config["dropout"])
-        
-        activation_map_size = self._conv_test(self.input_size)
-
-        self.agg = nn.AvgPool2d(activation_map_size)
-
+        activation_map_size_flattened = self._conv_test(self.input_size)
+ 
         self.dense_layers = nn.ModuleList()
 
         self.flatten = nn.Flatten()
         # Loop to create linear blocks based on config["linear_blocks"]
         for i, blockconfig in enumerate(config["linear_blocks"]):
-            in_features = config["conv_blocks"][-1] if i == 0 else config["linear_blocks"][i-1]["out_features"]
+            in_features = activation_map_size_flattened if i == 0 else config["linear_blocks"][i-1]["out_features"]
             self.dense_layers.append(
                 LinearBlock(
                     in_features=in_features,
@@ -93,20 +94,18 @@ class cnn(nn.Module):
                 )
             )
 
-        # Final output layer (no activation)
         self.output_layer = nn.Linear(config["linear_blocks"][-1]["out_features"], config["output_size"])
 
     def _conv_test(self, input_size):
         x = torch.ones(input_size, dtype=torch.float32)
-        for conv in self.convolutions:  # Apply each block in the ModuleList
+        for conv in self.convolutions:  
             x = conv(x)
-        return x.shape[-2:]
+        return torch.tensor(x.shape[-3:]).prod().item()
 
     def forward(self, x):
         for conv in self.convolutions:
             x = conv(x)
         x = self.dropout(x)
-        x = self.agg(x)
         x = self.flatten(x)
         for dense in self.dense_layers:
             x = dense(x)     

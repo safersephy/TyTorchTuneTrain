@@ -25,7 +25,7 @@ from utils.mlflow import set_best_run_tag_and_log_model
 warnings.simplefilter("ignore", UserWarning)
 n_epochs = 15
 n_trials = 50
-batch_size = 16
+batch_size = 32
 
 tuningmetric = "valid_loss"
 tuninggoal = "min"
@@ -37,7 +37,8 @@ search_space = {
     "output_size": 5,  # Number of classes
     "lr": tune.loguniform(1e-5, 1e-3),        # Learning rate
     "dropout": tune.uniform(0.0,0.5),
-    "conv_blocks": [32,64, 128],
+    "num_conv_layers": 3,
+    "initial_filters": 32,
     "linear_blocks": [
             {"out_features": 128, "dropout": 0.0},
             {"out_features": 64, "dropout": 0.0}
