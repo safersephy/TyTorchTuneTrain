@@ -293,6 +293,8 @@ torch==2.4.1
     # via torchvision
 torcheval==0.0.7
     # via exercises
+torchsummary==1.5.1
+    # via exercises
 torchvision==0.19.1
     # via exercises
 tornado==6.4.1

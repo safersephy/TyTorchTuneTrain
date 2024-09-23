@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 from torcheval.metrics import MulticlassAccuracy
 from tytorch.trainer import EarlyStopping, Trainer
 from tytorch.utils import get_device, save_params_to_disk, load_params_from_disk
-
+from torchsummary import summary
 from models.image_classification import cnn, NeuralNetwork
 from utils.mlflow import getModelfromMLFlow
 
@@ -57,11 +57,10 @@ else:
         "input_size": (32, 3, 224, 224),  # Example: batch_size, channels, height, width
         "output_size": 5,  # Number of classes
         "lr": 1e-3,        # Learning rate
-        "conv_blocks": [   # Block-specific configurations
-            {"filters": 32, "kernel_size": 3, "padding": 1, "dropout": 0.0, "maxpool": True},
-            {"filters": 64, "kernel_size": 3, "padding": 0, "dropout": 0.0, "maxpool": True},
-            {"filters": 128, "kernel_size": 3, "padding": 0, "dropout": 0.2, "maxpool": True},  
-        ],
+        "dropout": 0.2,
+        "n_conv_blocks": 3,
+        "first_conv_filters": 32,
+        "conv_blocks": [32,64, 128],
         "linear_blocks": [
         {"out_features": 128, "dropout": 0.0},
         {"out_features": 64, "dropout": 0.0}
@@ -72,7 +71,6 @@ else:
 
 batch_size = 32
 n_epochs = 50
-
 
 device = get_device()
 
@@ -87,6 +85,8 @@ trainloader = DataLoader(datasets["train"], batch_size=batch_size, shuffle=True)
 testloader = DataLoader(datasets["valid"], batch_size=batch_size, shuffle=True)
 
 model = modelClass(params).to(device)
+#summary(model.to("cpu"), input_size=params["input_size"][-3:], device="cpu")
+
 trainer = Trainer(
     model=model,
     loss_fn=CrossEntropyLoss(),

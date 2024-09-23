@@ -36,14 +36,11 @@ search_space = {
     "input_size": (batch_size, 3, 224, 224),  # Example: batch_size, channels, height, width
     "output_size": 5,  # Number of classes
     "lr": tune.loguniform(1e-5, 1e-3),        # Learning rate
-    "conv_blocks": [   # Block-specific configurations
-        {"filters": 32, "kernel_size": 3, "padding": 1, "dropout": 0.0, "maxpool": True},
-        {"filters": 64, "kernel_size": 3, "padding": 0, "dropout": 0.0, "maxpool": True},
-        {"filters": 128, "kernel_size": 3, "padding": 0, "dropout": tune.uniform(0.0,0.5), "maxpool": True},  
-    ],
+    "dropout": tune.uniform(0.0,0.5),
+    "conv_blocks": [32,64, 128],
     "linear_blocks": [
-            {"out_features": tune.qrandint(64, 256, 64), "dropout": 0.0},
-            {"out_features": tune.qrandint(32, 128, 32), "dropout": 0.0}
+            {"out_features": 128, "dropout": 0.0},
+            {"out_features": 64, "dropout": 0.0}
     ]
 }
 
