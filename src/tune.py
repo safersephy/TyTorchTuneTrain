@@ -23,27 +23,36 @@ from models.image_classification import cnn
 from utils.mlflow import set_best_run_tag_and_log_model
 
 warnings.simplefilter("ignore", UserWarning)
-n_epochs = 2
-n_trials = 2
-batch_size = 32
+n_epochs = 15
+n_trials = 50
+batch_size = 16
 
 tuningmetric = "valid_loss"
 tuninggoal = "min"
 
+
 search_space = {
-    "lr": tune.loguniform(1e-5, 1e-3),
-    "filters": tune.qrandint(32, 128, 16),
-    "h1": tune.qrandint(32, 256, 16),
-    "h2": tune.qrandint(16, 128, 16),
-    "input_size": (batch_size, 1, 28, 28),
+    "model_class": cnn,
+    "input_size": (batch_size, 3, 224, 224),  # Example: batch_size, channels, height, width
+    "output_size": 5,  # Number of classes
+    "lr": tune.loguniform(1e-5, 1e-3),        # Learning rate
+    "conv_blocks": [   # Block-specific configurations
+        {"filters": 32, "kernel_size": 3, "padding": 1, "dropout": 0.0, "maxpool": True},
+        {"filters": 64, "kernel_size": 3, "padding": 0, "dropout": 0.0, "maxpool": True},
+        {"filters": 128, "kernel_size": 3, "padding": 0, "dropout": tune.uniform(0.0,0.5), "maxpool": True},  
+    ],
+    "linear_blocks": [
+            {"out_features": tune.qrandint(64, 256, 64), "dropout": 0.0},
+            {"out_features": tune.qrandint(32, 128, 32), "dropout": 0.0}
+    ]
 }
 
 timestamp = datetime.now().strftime("%Y-%m-%d-%H:%M:%S")
 experiment_path = f"tune-{timestamp}"
 
-modelClass = cnn
+modelClass = search_space["model_class"]
 
-datasetfactory = DatasetFactoryProvider.create_factory(DatasetType.FASHION)
+datasetfactory = DatasetFactoryProvider.create_factory(DatasetType.FLOWERS)
 
 
 def tune_func(config):
