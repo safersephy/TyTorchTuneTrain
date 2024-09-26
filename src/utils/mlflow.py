@@ -1,9 +1,23 @@
 from typing import Optional
-
+import argparse
+from mads_datasets import DatasetFactoryProvider, DatasetType
+from tytorch.utils import load_params_from_disk
 import mlflow
 from loguru import logger
 from torch import nn
+from datetime import datetime
+from pathlib import Path
 
+def set_mlflow_experiment(experiment_name: str,add_timestamp:bool = True):
+    
+    if add_timestamp:
+        timestamp = datetime.now().strftime("%Y-%m-%d-%H:%M:%S")
+        experiment_name = f"{experiment_name}-{timestamp}"
+        
+    mlflow.set_tracking_uri("sqlite:///mlflow.db")
+    mlflow.set_experiment(experiment_name)
+    
+    return experiment_name
 
 def set_best_run_tag_and_log_model(
     experiment_name: str, model: nn.Module, metric_name: str, direction: str = "max"
@@ -37,7 +51,7 @@ def set_best_run_tag_and_log_model(
     runs = client.search_runs(experiment_id, order_by=[f"metrics.{metric_name}"])
 
     if not runs:
-        print("No runs found in this experiment.")
+        logger.info("No runs found in this experiment.")
         return
 
     # Find the best run based on the direction
@@ -61,7 +75,7 @@ def set_best_run_tag_and_log_model(
     if best_run:
         # Set the tag 'best_run=True' for the best run
         client.set_tag(best_run.info.run_id, "best_run", "True")
-        print(
+        logger.info(
             f"Best run with ID {best_run.info.run_id} has been tagged as the best run with a metric value of {best_metric}."
         )
 
@@ -70,10 +84,9 @@ def set_best_run_tag_and_log_model(
             mlflow.pytorch.log_model(
                 pytorch_model=model, artifact_path="logged_models/model"
             )
-            print(f"Model has been logged to run {best_run.info.run_id}.")
+            logger.info(f"Model has been logged to experimen {experiment_name}, run {best_run.info.run_id}.")
     else:
-        print(f"No valid runs found with the metric '{metric_name}'.")
-
+        logger.info(f"No valid runs found with the metric '{metric_name}'.")
 
 def getModelfromMLFlow(
     experimentName: str, best_run: bool = False, runId: Optional[int] = None
@@ -112,3 +125,39 @@ def getModelfromMLFlow(
     param_dict = mlflow.artifacts.load_dict(param_uri)
     state_dict = mlflow.pytorch.load_model(model_uri).state_dict()
     return param_dict, state_dict
+
+
+def get_training_config():
+    parser = argparse.ArgumentParser(
+        description="Train a model with the specified experiment name or config path"
+    )
+    parser.add_argument(
+        "--experiment_name", 
+        type=str, 
+        help="Name of the experiment", 
+        default=None  # Default value if not provided
+    )
+    parser.add_argument(
+        "--config_path", 
+        type=str, 
+        help="path to config file", 
+        default=None  # Default value if not provided
+    )
+    args = parser.parse_args()
+
+    if args.experiment_name:
+        print(f"Experiment name provided: {args.experiment_name}")
+        experiment_name = args.experiment_name
+        params, state = getModelfromMLFlow(experiment_name, True)
+  
+
+    elif args.config_path:
+        print(f"config path provided: {args.config}")
+        configfile = args.config_path
+        params = load_params_from_disk(Path(configfile))
+
+
+    else:
+        print("No experiment name or config path provided. Set config manually")
+        params = None
+    return params

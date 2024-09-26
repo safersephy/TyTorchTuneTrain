@@ -19,21 +19,22 @@ from torcheval.metrics import MulticlassAccuracy
 from tytorch.trainer import Trainer
 from tytorch.utils import get_device
 
-from models.image_classification import cnn
-from utils.mlflow import set_best_run_tag_and_log_model
+from models.image_classification import CNN
+from utils.mlflow import set_mlflow_experiment, set_best_run_tag_and_log_model
 
 warnings.simplefilter("ignore", UserWarning)
-n_epochs = 15
-n_trials = 50
-batch_size = 32
 
 tuningmetric = "valid_loss"
 tuninggoal = "min"
+n_trials = 50
 
-
-search_space = {
-    "model_class": cnn,
-    "input_size": (batch_size, 3, 224, 224),  # Example: batch_size, channels, height, width
+params = {
+    "model_class": CNN,
+    "batch_size": 32,
+    "n_epochs": 15,
+    "device":"cpu",  
+    "dataset_type": DatasetType.FLOWERS, 
+    "input_size": (32, 3, 224, 224),  # Example: batch_size, channels, height, width
     "output_size": 5,  # Number of classes
     "lr": tune.loguniform(1e-5, 1e-3),        # Learning rate
     "dropout": tune.uniform(0.0,0.5),
@@ -45,41 +46,33 @@ search_space = {
     ]
 }
 
-timestamp = datetime.now().strftime("%Y-%m-%d-%H:%M:%S")
-experiment_path = f"tune-{timestamp}"
+experiment_name = set_mlflow_experiment("tune",False)
 
-modelClass = search_space["model_class"]
-
-datasetfactory = DatasetFactoryProvider.create_factory(DatasetType.FLOWERS)
+datasetfactory = DatasetFactoryProvider.create_factory(params["dataset_type"])
 
 
 def tune_func(config):
-    device = get_device()
-    datasets = datasetfactory.create_dataset()
-    trainloader = DataLoader(datasets["train"], batch_size=batch_size, shuffle=True)
-    testloader = DataLoader(datasets["valid"], batch_size=batch_size, shuffle=True)
 
-    model = modelClass(config)
-    model = model.to(device)
+    datasets = datasetfactory.create_dataset()
+    trainloader = DataLoader(datasets["train"], batch_size=config["batch_size"], shuffle=True)
+    testloader = DataLoader(datasets["valid"], batch_size=config["batch_size"], shuffle=True)
+
+    model = config["model_class"](config)
 
     trainer = Trainer(
         model=model,
         loss_fn=CrossEntropyLoss(),
         metrics=[MulticlassAccuracy()],
         optimizer=Adam(model.parameters(), lr=config["lr"]),
-        device=device,
+        device=config["device"],
     )
 
     mlflow.log_params(config)
-    trainer.fit(n_epochs, trainloader, testloader)
-
-
-mlflow.set_tracking_uri("sqlite:///mlflow.db")
-mlflow.set_experiment(experiment_path)
+    trainer.fit(params["n_epochs"], trainloader, testloader)
 
 tuner = tune.Tuner(
     tune_func,
-    param_space=search_space,
+    param_space=params,
     tune_config=TuneConfig(
         mode=tuninggoal,
         scheduler=ASHAScheduler(),
@@ -89,11 +82,11 @@ tuner = tune.Tuner(
     ),
     run_config=train.RunConfig(
         storage_path=Path("./ray_tuning_results").resolve(),
-        name=experiment_path,
+        name=experiment_name,
         callbacks=[
             MLflowLoggerCallback(
                 tracking_uri=mlflow.get_tracking_uri(),
-                experiment_name=experiment_path,
+                experiment_name=experiment_name,
                 save_artifact=True,
             )
         ],
@@ -102,11 +95,8 @@ tuner = tune.Tuner(
 results = tuner.fit()
 
 best_result = results.get_best_result(tuningmetric, tuninggoal)
-
-model = modelClass(best_result.config)  # Initialize your model class
+model = params["model_class"](best_result.config)  
 model.load_state_dict(
     torch.load(Path(best_result.checkpoint.path) / "model.pth")
-)  # Load the saved weights
-set_best_run_tag_and_log_model(experiment_path, model, tuningmetric, tuninggoal)
-
-logger.info(f"tuning experiment name: {experiment_path}")
+)
+set_best_run_tag_and_log_model(experiment_name, model, tuningmetric, tuninggoal)

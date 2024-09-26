@@ -56,7 +56,7 @@ class LinearBlock(nn.Module):
 
 
 
-class cnn(nn.Module):
+class CNN(nn.Module):
     def __init__(self, config: dict):
         super().__init__()
         self.input_size = config["input_size"]

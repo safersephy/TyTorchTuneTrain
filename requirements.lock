@@ -79,7 +79,7 @@ graphql-relay==3.2.0
 gunicorn==23.0.0
     # via mlflow
 hyperopt==0.2.7
-    # via exercises
+    # via tytorchtunetrainer
 idna==3.10
     # via requests
 importlib-metadata==8.5.0
@@ -108,11 +108,11 @@ keyring==25.4.0
 kiwisolver==1.4.7
     # via matplotlib
 loguru==0.7.2
-    # via exercises
     # via mads-datasets
     # via tytorch
+    # via tytorchtunetrainer
 mads-datasets==0.3.12
-    # via exercises
+    # via tytorchtunetrainer
 mako==1.3.5
     # via alembic
 markdown==3.7
@@ -124,7 +124,7 @@ markupsafe==2.1.5
 matplotlib==3.9.2
     # via mlflow
 mlflow==2.16.2
-    # via exercises
+    # via tytorchtunetrainer
 mlflow-skinny==2.16.2
     # via mlflow
 more-itertools==10.5.0
@@ -182,9 +182,9 @@ pyasn1==0.6.1
 pyasn1-modules==0.4.1
     # via google-auth
 pydantic==2.9.2
-    # via exercises
     # via mads-datasets
     # via tytorch
+    # via tytorchtunetrainer
 pydantic-core==2.23.4
     # via pydantic
 pyparsing==3.1.4
@@ -198,7 +198,7 @@ pyyaml==6.0.2
     # via mlflow-skinny
     # via ray
 ray==2.36.0
-    # via exercises
+    # via tytorchtunetrainer
 referencing==0.35.1
     # via jsonschema
     # via jsonschema-specifications
@@ -238,14 +238,14 @@ sympy==1.13.3
 threadpoolctl==3.5.0
     # via scikit-learn
 torch==2.4.1
-    # via exercises
     # via torchvision
+    # via tytorchtunetrainer
 torcheval==0.0.7
-    # via exercises
-torchsummary==1.5.1
-    # via exercises
+    # via tytorchtunetrainer
+torchinfo==1.8.0
+    # via tytorchtunetrainer
 torchvision==0.19.1
-    # via exercises
+    # via tytorchtunetrainer
 tqdm==4.66.5
     # via hyperopt
     # via mads-datasets
@@ -257,8 +257,8 @@ typing-extensions==4.12.2
     # via sqlalchemy
     # via torch
     # via torcheval
-tytorch @ git+https://github.com/safersephy/TyTorch.git@5463d93402fcf2cf3f5b22966f868e82f79e00ac
-    # via exercises
+tytorch @ git+https://github.com/safersephy/TyTorch.git@f91457dfe35515fc75bb695c85bf19bb3aac9b70
+    # via tytorchtunetrainer
 tzdata==2024.1
     # via pandas
 urllib3==2.2.3

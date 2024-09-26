@@ -1,62 +1,32 @@
-import argparse
 import warnings
-from datetime import datetime
-from pathlib import Path
 import mlflow
 import mlflow.pytorch
 from mads_datasets import DatasetFactoryProvider, DatasetType
 from torch.nn import CrossEntropyLoss
 from torch.optim import Adam
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 from torcheval.metrics import MulticlassAccuracy
 from tytorch.trainer import EarlyStopping, Trainer
-from tytorch.utils import get_device, save_params_to_disk, load_params_from_disk
-from torchsummary import summary
-from models.image_classification import cnn, NeuralNetwork
-from utils.mlflow import getModelfromMLFlow
-
+from torchinfo import summary
+from models.image_classification import CNN, NeuralNetwork
+from utils.mlflow import set_mlflow_experiment, get_training_config
 warnings.simplefilter("ignore", UserWarning)
+
 mlflow.set_tracking_uri("sqlite:///mlflow.db")
+set_mlflow_experiment("train")
 
-parser = argparse.ArgumentParser(
-    description="Train a model with the specified experiment name or param config"
-)
-parser.add_argument(
-    "--experiment_name", 
-    type=str, 
-    help="Name of the experiment", 
-    default=None  # Default value if not provided
-)
-parser.add_argument(
-    "--config", 
-    type=str, 
-    help="name of the param file in the config folder", 
-    default=None  # Default value if not provided
-)
-args = parser.parse_args()
-
-if args.experiment_name:
-    print(f"Experiment name provided: {args.experiment_name}")
-    experiment_name = args.experiment_name
-    params, state = getModelfromMLFlow(experiment_name, True)
-    modelClass = cnn    
-    datasetfactory = DatasetFactoryProvider.create_factory(DatasetType.FASHION)    
-
-elif args.config:
-    print(f"param file provided: {args.config}")
-    configfile = args.config
-    params = load_params_from_disk(Path("./configs/params.pkl"))
-    modelClass = params["model_class"]
-    datasetfactory = DatasetFactoryProvider.create_factory(DatasetType.FLOWERS)  
-
-else:
-    print("No experiment name provided. Using default settings.")
-
+params = get_training_config()
+if params is None:
     params = {
-        "model_class": cnn,
-        "input_size": (32, 3, 224, 224),  # Example: batch_size, channels, height, width
-        "output_size": 5,  # Number of classes
-        "lr": 1e-4,        # Learning rate
+        "model_class": CNN,
+        "batch_size": 32,
+        "n_epochs": 50,
+        "device":"cpu",
+        "dataset_type": DatasetType.FLOWERS,
+        "input_size": (32, 3, 224, 224),  
+        "output_size": 5,  
+        "lr": 1e-4,        
         "dropout": 0.3,
         "num_conv_layers": 5,
         "initial_filters": 32,
@@ -65,40 +35,28 @@ else:
         {"out_features": 16, "dropout": 0.0}
         ]
     }
-    modelClass = params["model_class"]
-    datasetfactory = DatasetFactoryProvider.create_factory(DatasetType.FLOWERS)       
+datasets = DatasetFactoryProvider.create_factory(params["dataset_type"]).create_dataset()       
+trainloader = DataLoader(datasets["train"], batch_size=params["batch_size"], shuffle=True)
+testloader = DataLoader(datasets["valid"], batch_size=params["batch_size"], shuffle=True)
 
-batch_size = 32
-n_epochs = 50
+model = params["model_class"](params)
+summary(model, input_size=tuple((next(iter(trainloader))[0]).shape))
 
-device = get_device()
-
-timestamp = datetime.now().strftime("%Y-%m-%d-%H:%M:%S")
-experiment_path = f"train-{timestamp}"
-mlflow.set_tracking_uri("sqlite:///mlflow.db")
-mlflow.set_experiment(experiment_path)
-
-
-datasets = datasetfactory.create_dataset()
-trainloader = DataLoader(datasets["train"], batch_size=batch_size, shuffle=True)
-testloader = DataLoader(datasets["valid"], batch_size=batch_size, shuffle=True)
-
-model = modelClass(params)
-summary(model.to("cpu"), input_size=params["input_size"][-3:], device="cpu")
-
-model = model.to(device)
+optimizer = Adam(model.parameters(), lr=params["lr"])
 
 trainer = Trainer(
     model=model,
     loss_fn=CrossEntropyLoss(),
     metrics=[MulticlassAccuracy()],
-    optimizer=Adam(model.parameters(), lr=params["lr"]),
-    early_stopping=EarlyStopping(5, 0.01, "min"),
-    device=device,
+    optimizer=optimizer,
+    early_stopping=EarlyStopping(10, 0.01, "min"),
+    device=params["device"],
+    lrscheduler=ReduceLROnPlateau(optimizer=optimizer, factor=.5, patience=5)
 )
 
 with mlflow.start_run():
     mlflow.log_params(params)
-    trainer.fit(n_epochs, trainloader, testloader)
+    trainer.fit(params["n_epochs"], trainloader, testloader)
+    
     mlflow.pytorch.log_model(model, artifact_path="logged_models/model")
 mlflow.end_run()

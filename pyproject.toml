@@ -1,9 +1,9 @@
 [project]
-name = "exercises"
+name = "TyTorchTuneTrainer"
 version = "0.1.0"
 description = "Add your description here"
 authors = [
-    { name = "SaferSephy", email = "t.vandervelden3@student.han.nl" }
+    { name = "SaferSephy", email = "tijsvdvelden@hotmail.com" }
 ]
 dependencies = [
     "loguru",
@@ -16,7 +16,7 @@ dependencies = [
     "ray>=2.36.0",
     "torchvision>=0.19.1",
     "hyperopt>=0.2.7",
-    "torchsummary>=1.5.1",
+    "torchinfo>=1.8.0",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
@@ -35,6 +35,6 @@ dev-dependencies = [
 allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/exercises"]
+packages = ["src"]
 
 [tool.pdm]
