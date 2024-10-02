@@ -13,3 +13,4 @@ wheels/
 earlystopping/
 mlruns/
 ray_tuning_results/
+data/

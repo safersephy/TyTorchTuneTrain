@@ -1,4 +1,5 @@
 import warnings
+
 import mlflow
 import mlflow.pytorch
 from mads_datasets import DatasetFactoryProvider, DatasetType
@@ -8,13 +9,15 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import DataLoader
 from torcheval.metrics import MulticlassAccuracy
 from tytorch.trainer import EarlyStopping, Trainer
-from torchinfo import summary
-from models.image_classification import CNN, NeuralNetwork
-from utils.mlflow import set_mlflow_experiment, get_training_config
-warnings.simplefilter("ignore", UserWarning)
+from pathlib import Path
 
-mlflow.set_tracking_uri("sqlite:///mlflow.db")
-set_mlflow_experiment("train")
+from tytorch.examples.datasets.flowers import FlowersDatasetFactory, ImgFactorySettings
+from tytorch.data import TyTorchDataset
+
+from models.image_classification import CNN
+from utils.mlflow import get_training_config, set_mlflow_experiment
+
+warnings.simplefilter("ignore", UserWarning)
 
 params = get_training_config()
 if params is None:
@@ -22,26 +25,47 @@ if params is None:
         "model_class": CNN,
         "batch_size": 32,
         "n_epochs": 50,
-        "device":"cpu",
-        "dataset_type": DatasetType.FLOWERS,
-        "input_size": (32, 3, 224, 224),  
-        "output_size": 5,  
-        "lr": 1e-4,        
+        "input_size": (32, 3, 224, 224),
+        "output_size": 5,
+        "lr": 1e-4,
         "dropout": 0.3,
-        "num_conv_layers": 5,
+        "num_conv_layers": 4,
         "initial_filters": 32,
         "linear_blocks": [
-        {"out_features": 32, "dropout": 0.0},
-        {"out_features": 16, "dropout": 0.0}
-        ]
+            #{"out_features": 32, "dropout": 0.0},
+            {"out_features": 16, "dropout": 0.0},
+        ],
     }
-datasets = DatasetFactoryProvider.create_factory(params["dataset_type"]).create_dataset()       
-trainloader = DataLoader(datasets["train"], batch_size=params["batch_size"], shuffle=True)
-testloader = DataLoader(datasets["valid"], batch_size=params["batch_size"], shuffle=True)
+
+#datasets = DatasetFactoryProvider.create_factory(DatasetType.FLOWERS).create_dataset()
+
+flowers_factory_settings  = ImgFactorySettings(
+    source_url="https://storage.googleapis.com/download.tensorflow.org/example_images/flower_photos.tgz",
+    bronze_folder = Path("./tytorch/examples/data/bronze"), 
+    bronze_filename="flowers.tgz",
+    silver_folder = Path("./tytorch/examples/data/silver"),
+    silver_filename="flowers.pt", 
+    valid_frac=.2,
+    test_frac=.2,
+    unzip=True,
+    formats=['.jpg','.png'],
+    image_size=(224, 224)
+)
+
+train_dataset, valid_dataset, test_dataset = FlowersDatasetFactory(flowers_factory_settings
+).load()
+
+
+
+
+trainloader = DataLoader(
+    train_dataset, batch_size=params["batch_size"], shuffle=True
+)
+testloader = DataLoader(
+    valid_dataset, batch_size=params["batch_size"], shuffle=True
+)
 
 model = params["model_class"](params)
-summary(model, input_size=tuple((next(iter(trainloader))[0]).shape))
-
 optimizer = Adam(model.parameters(), lr=params["lr"])
 
 trainer = Trainer(
@@ -50,13 +74,14 @@ trainer = Trainer(
     metrics=[MulticlassAccuracy()],
     optimizer=optimizer,
     early_stopping=EarlyStopping(10, 0.01, "min"),
-    device=params["device"],
-    lrscheduler=ReduceLROnPlateau(optimizer=optimizer, factor=.5, patience=5)
+    device="mps",
+    lrscheduler=ReduceLROnPlateau(optimizer=optimizer, factor=0.5, patience=5),
 )
 
+set_mlflow_experiment("train")
 with mlflow.start_run():
     mlflow.log_params(params)
     trainer.fit(params["n_epochs"], trainloader, testloader)
-    
+
     mlflow.pytorch.log_model(model, artifact_path="logged_models/model")
 mlflow.end_run()

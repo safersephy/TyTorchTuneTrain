@@ -21,6 +21,7 @@ class NeuralNetwork(nn.Module):
         logits = self.linear_relu_stack(x)
         return logits
 
+
 class ConvBlock(nn.Module):
     def __init__(self, in_channels, out_channels):
         """Convolutional block with optional dropout and maxpool."""
@@ -29,7 +30,7 @@ class ConvBlock(nn.Module):
             nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=0),
             nn.ReLU(),
             nn.BatchNorm2d(out_channels),
-            nn.MaxPool2d(kernel_size=2)
+            nn.MaxPool2d(kernel_size=2),
         ]
 
         self.block = nn.Sequential(*layers)
@@ -42,18 +43,14 @@ class LinearBlock(nn.Module):
     def __init__(self, in_features, out_features, dropout=0.0):
         """Linear block with ReLU activation and optional dropout."""
         super(LinearBlock, self).__init__()
-        layers = [
-            nn.Linear(in_features, out_features),
-            nn.ReLU()
-        ]
+        layers = [nn.Linear(in_features, out_features), nn.ReLU()]
         if dropout > 0:
             layers.append(nn.Dropout(p=dropout))
-        
+
         self.block = nn.Sequential(*layers)
 
     def forward(self, x):
         return self.block(x)
-
 
 
 class CNN(nn.Module):
@@ -63,13 +60,13 @@ class CNN(nn.Module):
 
         self.convolutions = nn.ModuleList()
 
-      # Initial number of filters and number of layers
+        # Initial number of filters and number of layers
         num_conv_layers = config["num_conv_layers"]
         initial_filters = config["initial_filters"]
 
         for i in range(num_conv_layers):
             in_ch = self.input_size[1] if i == 0 else initial_filters * (2 ** (i - 1))
-            out_ch = initial_filters * (2 ** i)
+            out_ch = initial_filters * (2**i)
             self.convolutions.append(
                 ConvBlock(
                     in_channels=in_ch,
@@ -79,26 +76,35 @@ class CNN(nn.Module):
 
         self.dropout = nn.Dropout(config["dropout"])
         activation_map_size_flattened = self._conv_test(self.input_size)
- 
+
         self.dense_layers = nn.ModuleList()
 
         self.flatten = nn.Flatten()
         # Loop to create linear blocks based on config["linear_blocks"]
+        
+        self.avg = nn.AdaptiveAvgPool2d((1, 1))
+        
         for i, blockconfig in enumerate(config["linear_blocks"]):
-            in_features = activation_map_size_flattened if i == 0 else config["linear_blocks"][i-1]["out_features"]
+            in_features = (
+                out_ch
+                if i == 0
+                else config["linear_blocks"][i - 1]["out_features"]
+            )
             self.dense_layers.append(
                 LinearBlock(
                     in_features=in_features,
                     out_features=blockconfig["out_features"],
-                    dropout=blockconfig.get("dropout", 0.0)
+                    dropout=blockconfig.get("dropout", 0.0),
                 )
             )
 
-        self.output_layer = nn.Linear(config["linear_blocks"][-1]["out_features"], config["output_size"])
+        self.output_layer = nn.Linear(
+            config["linear_blocks"][-1]["out_features"], config["output_size"]
+        )
 
     def _conv_test(self, input_size):
         x = torch.ones(input_size, dtype=torch.float32)
-        for conv in self.convolutions:  
+        for conv in self.convolutions:
             x = conv(x)
         return torch.tensor(x.shape[-3:]).prod().item()
 
@@ -106,8 +112,10 @@ class CNN(nn.Module):
         for conv in self.convolutions:
             x = conv(x)
         x = self.dropout(x)
-        x = self.flatten(x)
+        x = self.avg(x)
+        x = x.view(x.size(0), -1)
+        #x = self.flatten(x)
         for dense in self.dense_layers:
-            x = dense(x)     
+            x = dense(x)
         logits = self.output_layer(x)
         return logits

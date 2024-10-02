@@ -124,6 +124,7 @@ markupsafe==2.1.5
 matplotlib==3.9.2
     # via mlflow
 mlflow==2.16.2
+    # via tytorch
     # via tytorchtunetrainer
 mlflow-skinny==2.16.2
     # via mlflow
@@ -197,7 +198,8 @@ pytz==2024.2
 pyyaml==6.0.2
     # via mlflow-skinny
     # via ray
-ray==2.36.0
+ray==2.37.0
+    # via tytorch
     # via tytorchtunetrainer
 referencing==0.35.1
     # via jsonschema
@@ -222,7 +224,6 @@ scipy==1.14.1
 setuptools==75.1.0
     # via opentelemetry-api
     # via opentelemetry-sdk
-    # via tytorch
 six==1.16.0
     # via hyperopt
     # via python-dateutil
@@ -239,16 +240,21 @@ threadpoolctl==3.5.0
     # via scikit-learn
 torch==2.4.1
     # via torchvision
+    # via tytorch
     # via tytorchtunetrainer
 torcheval==0.0.7
+    # via tytorch
     # via tytorchtunetrainer
 torchinfo==1.8.0
+    # via tytorch
     # via tytorchtunetrainer
 torchvision==0.19.1
+    # via tytorch
     # via tytorchtunetrainer
 tqdm==4.66.5
     # via hyperopt
     # via mads-datasets
+    # via tytorch
 typing-extensions==4.12.2
     # via alembic
     # via opentelemetry-sdk
@@ -257,7 +263,7 @@ typing-extensions==4.12.2
     # via sqlalchemy
     # via torch
     # via torcheval
-tytorch @ git+https://github.com/safersephy/TyTorch.git@f91457dfe35515fc75bb695c85bf19bb3aac9b70
+tytorch @ git+https://github.com/safersephy/TyTorch.git@988130b27dc97f2de179938da04057e10aaf2dc0
     # via tytorchtunetrainer
 tzdata==2024.1
     # via pandas

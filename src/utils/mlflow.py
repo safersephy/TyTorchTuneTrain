@@ -1,23 +1,24 @@
-from typing import Optional
 import argparse
-from mads_datasets import DatasetFactoryProvider, DatasetType
-from tytorch.utils import load_params_from_disk
+from datetime import datetime
+from pathlib import Path
+from typing import Optional
+
 import mlflow
 from loguru import logger
 from torch import nn
-from datetime import datetime
-from pathlib import Path
+from tytorch.utils import load_params_from_disk
 
-def set_mlflow_experiment(experiment_name: str,add_timestamp:bool = True):
-    
+
+def set_mlflow_experiment(experiment_name: str, add_timestamp: bool = True):
     if add_timestamp:
         timestamp = datetime.now().strftime("%Y-%m-%d-%H:%M:%S")
         experiment_name = f"{experiment_name}-{timestamp}"
-        
+
     mlflow.set_tracking_uri("sqlite:///mlflow.db")
     mlflow.set_experiment(experiment_name)
-    
+
     return experiment_name
+
 
 def set_best_run_tag_and_log_model(
     experiment_name: str, model: nn.Module, metric_name: str, direction: str = "max"
@@ -84,21 +85,24 @@ def set_best_run_tag_and_log_model(
             mlflow.pytorch.log_model(
                 pytorch_model=model, artifact_path="logged_models/model"
             )
-            logger.info(f"Model has been logged to experimen {experiment_name}, run {best_run.info.run_id}.")
+            logger.info(
+                f"Model has been logged to experimen {experiment_name}, run {best_run.info.run_id}."
+            )
     else:
         logger.info(f"No valid runs found with the metric '{metric_name}'.")
 
-def getModelfromMLFlow(
-    experimentName: str, best_run: bool = False, runId: Optional[int] = None
+
+def get_model_from_mlflow(
+    experiment_name: str, best_run: bool = False, run_id: Optional[int] = None
 ) -> tuple[dict, dict]:
-    experiment = mlflow.get_experiment_by_name(experimentName)
+    experiment = mlflow.get_experiment_by_name(experiment_name)
 
     if experiment:
         experiment_id = experiment.experiment_id
     else:
-        raise Exception(f"Experiment '{experimentName}' does not exist.")
+        raise Exception(f"Experiment '{experiment_name}' does not exist.")
 
-    if runId is None:
+    if run_id is None:
         if best_run:
             # Filter runs with the tag "best_run" set to True
             runs = mlflow.search_runs(
@@ -114,14 +118,14 @@ def getModelfromMLFlow(
 
         if not runs.empty:
             last_run = runs.iloc[0]  # Get the most recent run
-            runId = last_run.run_id
-            logger.info(f"Last run ID: {runId}")
+            run_id = last_run.run_id
+            logger.info(f"Last run ID: {run_id}")
             logger.info(f"Run details:\n{last_run}")
         else:
-            logger.info(f"No runs found for experiment '{experimentName}'.")
+            logger.info(f"No runs found for experiment '{experiment_name}'.")
 
-    model_uri = f"runs:/{runId}/logged_models/model"
-    param_uri = f"runs:/{runId}/params.json"
+    model_uri = f"runs:/{run_id}/logged_models/model"
+    param_uri = f"runs:/{run_id}/params.json"
     param_dict = mlflow.artifacts.load_dict(param_uri)
     state_dict = mlflow.pytorch.load_model(model_uri).state_dict()
     return param_dict, state_dict
@@ -132,30 +136,28 @@ def get_training_config():
         description="Train a model with the specified experiment name or config path"
     )
     parser.add_argument(
-        "--experiment_name", 
-        type=str, 
-        help="Name of the experiment", 
-        default=None  # Default value if not provided
+        "--experiment_name",
+        type=str,
+        help="Name of the experiment",
+        default=None,  # Default value if not provided
     )
     parser.add_argument(
-        "--config_path", 
-        type=str, 
-        help="path to config file", 
-        default=None  # Default value if not provided
+        "--config_path",
+        type=str,
+        help="path to config file",
+        default=None,  # Default value if not provided
     )
     args = parser.parse_args()
 
     if args.experiment_name:
         print(f"Experiment name provided: {args.experiment_name}")
         experiment_name = args.experiment_name
-        params, state = getModelfromMLFlow(experiment_name, True)
-  
+        params, state = get_model_from_mlflow(experiment_name, True)
 
     elif args.config_path:
         print(f"config path provided: {args.config}")
         configfile = args.config_path
         params = load_params_from_disk(Path(configfile))
-
 
     else:
         print("No experiment name or config path provided. Set config manually")

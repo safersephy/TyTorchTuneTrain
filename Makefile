@@ -5,11 +5,11 @@
 # Set the host for the MLflow server to bind to (localhost in this case)
 
 format:
-	isort -v src
-	black src
+	ruff format src
+
 
 lint:
-	ruff check src
+	ruff check src --fix
 	mypy src --ignore-missing-imports
 
 mlflow:
