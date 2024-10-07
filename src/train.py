@@ -24,13 +24,15 @@ if params is None:
     params = {
         "model_class": CNN,
         "batch_size": 32,
-        "n_epochs": 50,
+        "n_epochs": 100,
         "input_size": (32, 3, 224, 224),
         "output_size": 5,
         "lr": 1e-4,
         "dropout": 0.3,
-        "num_conv_layers": 4,
-        "initial_filters": 32,
+        "conv_blocks": [
+            {"num_conv_layers": 3, "initial_filters": 32,"growth_factor": 2, "pool": True, "residual": False},  
+            {"num_conv_layers": 3, "initial_filters": 256,"growth_factor": 1, "pool": False, "residual": True},
+        ],
         "linear_blocks": [
             #{"out_features": 32, "dropout": 0.0},
             {"out_features": 16, "dropout": 0.0},
