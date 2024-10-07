@@ -263,7 +263,7 @@ typing-extensions==4.12.2
     # via sqlalchemy
     # via torch
     # via torcheval
-tytorch @ git+https://github.com/safersephy/TyTorch.git@988130b27dc97f2de179938da04057e10aaf2dc0
+tytorch @ git+https://github.com/safersephy/TyTorch.git@de3d9a32609e66c05c53cf549b18b34b0ce848ca
     # via tytorchtunetrainer
 tzdata==2024.1
     # via pandas

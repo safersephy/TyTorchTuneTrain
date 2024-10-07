@@ -76,22 +76,46 @@ class ConvFlexible(nn.Module):
 
         # Check if residual is enabled
         if self.residual and (input_size != out_ch or self.spatial_reduction > 1):
-            self.downsample = nn.Conv2d(input_size, out_ch, kernel_size=1, stride=self.spatial_reduction)
+            self.downsample = nn.Conv2d(input_size, out_ch, kernel_size=1, stride=self.spatial_reduction, padding=1)
         else:
             self.downsample = None
 
     def forward(self, x):
+        
+
         identity = x
-        for conv in self.convolutions:
+          
+        for conv in self.convolutions:        
             x = conv(x)
 
         if self.residual:
             if self.downsample is not None:
                 identity = self.downsample(identity)
+                
+            # Align the dimensions by center cropping or padding if needed
+            if identity.shape[-2:] != x.shape[-2:]:
+                # Cropping or padding logic to match the shape
+                identity = self._align_dimensions(identity, x.shape[-2:])
+                
             x = x + identity
 
         return x
+    def _align_dimensions(self, identity, target_shape):
+        # Aligns spatial dimensions between identity and x
+        _, _, h, w = identity.shape
+        target_h, target_w = target_shape
 
+        # Center crop if necessary
+        if h > target_h or w > target_w:
+            identity = identity[:, :, :target_h, :target_w]
+
+        # Pad if necessary
+        if h < target_h or w < target_w:
+            pad_h = (target_h - h) // 2
+            pad_w = (target_w - w) // 2
+            identity = nn.functional.pad(identity, (pad_w, pad_w, pad_h, pad_h))
+
+        return identity
 
 
 class LinearBlock(nn.Module):

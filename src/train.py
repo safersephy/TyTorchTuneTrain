@@ -30,8 +30,8 @@ if params is None:
         "lr": 1e-4,
         "dropout": 0.3,
         "conv_blocks": [
-            {"num_conv_layers": 3, "initial_filters": 32,"growth_factor": 2, "pool": True, "residual": False},  
-            {"num_conv_layers": 3, "initial_filters": 256,"growth_factor": 1, "pool": False, "residual": True},
+            {"num_conv_layers": 3, "initial_filters": 32,"growth_factor": 2, "pool": True, "residual": True},  
+            {"num_conv_layers": 3, "initial_filters": 256,"growth_factor": 1, "pool": False, "residual": False},
         ],
         "linear_blocks": [
             #{"out_features": 32, "dropout": 0.0},
@@ -77,7 +77,7 @@ trainer = Trainer(
     optimizer=optimizer,
     early_stopping=EarlyStopping(10, 0.01, "min"),
     device="mps",
-    lrscheduler=ReduceLROnPlateau(optimizer=optimizer, factor=0.5, patience=5),
+    lrscheduler=ReduceLROnPlateau(optimizer=optimizer, factor=.1, patience=3),
 )
 
 set_mlflow_experiment("train")

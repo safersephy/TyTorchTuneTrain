@@ -26,12 +26,13 @@ warnings.simplefilter("ignore", UserWarning)
 
 tuningmetric = "valid_loss"
 tuninggoal = "min"
-n_trials = 20
+n_trials = 60
+
 
 params = {
     "model_class": CNN,
     "batch_size": 32,
-    "n_epochs": 3,
+    "n_epochs": 4,
     "device": "mps",
     "dataset_type": DatasetType.FLOWERS,
     "input_size": (32, 3, 224, 224),  # Example: batch_size, channels, height, width
@@ -39,8 +40,8 @@ params = {
     "lr": 1e-4,  # Learning rate
     "dropout": .3,
     "conv_blocks": [
-        {"num_conv_layers": tune.randint(1,5), "initial_filters": 32,"growth_factor": 2, "pool": True, "residual": True},  
-        {"num_conv_layers": tune.randint(1,4), "initial_filters": 256,"growth_factor": 1, "pool": False, "residual": False},
+        {"num_conv_layers": tune.randint(1,8), "initial_filters": 32,"growth_factor": 2, "pool": True, "residual": True},  
+        {"num_conv_layers": tune.randint(1,9), "initial_filters": 256,"growth_factor": 1, "pool": False, "residual": False},
     ],
     "linear_blocks": [
         #{"out_features": 32, "dropout": 0.0},
@@ -54,20 +55,20 @@ experiment_name = set_mlflow_experiment("tune")
 datasetfactory = DatasetFactoryProvider.create_factory(params["dataset_type"])
 dataset = datasetfactory.create_dataset()
 
-from tytorch.examples.datasets.flowers import FlowersDatasetFactory, ImgFactorySettings
+# from tytorch.examples.datasets.flowers import FlowersDatasetFactory, ImgFactorySettings
 
-flowers_factory_settings  = ImgFactorySettings(
-    source_url="https://storage.googleapis.com/download.tensorflow.org/example_images/flower_photos.tgz",
-    bronze_folder = Path.home() / "Development/TyTorch/TuneTrain/tytorch/examples/data/bronze", 
-    bronze_filename="flowers.tgz",
-    silver_folder = Path.home() / "Development/TyTorch/TuneTrain/tytorch/examples/data/silver",
-    silver_filename="flowers.pt", 
-    valid_frac=.2,
-    test_frac=.2,
-    unzip=True,
-    formats=['.jpg','.png'],
-    image_size=(224, 224)
-)
+# flowers_factory_settings  = ImgFactorySettings(
+#     source_url="https://storage.googleapis.com/download.tensorflow.org/example_images/flower_photos.tgz",
+#     bronze_folder = Path.home() / "Development/TyTorch/TuneTrain/tytorch/examples/data/bronze", 
+#     bronze_filename="flowers.tgz",
+#     silver_folder = Path.home() / "Development/TyTorch/TuneTrain/tytorch/examples/data/silver",
+#     silver_filename="flowers.pt", 
+#     valid_frac=.2,
+#     test_frac=.2,
+#     unzip=True,
+#     formats=['.jpg','.png'],
+#     image_size=(224, 224)
+# )
 
 
 
@@ -82,16 +83,16 @@ def tune_func(config):
         config[f"conv_block_{idx}_pool"] = block["pool"]
         config[f"conv_block_{idx}_residual"] = block["residual"]
     
-    #dataset = datasetfactory.create_dataset()
+    dataset = datasetfactory.create_dataset()
 
-    train_dataset, valid_dataset, test_dataset = FlowersDatasetFactory(flowers_factory_settings
-         ).load()
+    # train_dataset, valid_dataset, test_dataset = FlowersDatasetFactory(flowers_factory_settings
+    #      ).create_datasets()
     
     trainloader = DataLoader(
-       train_dataset, batch_size=config["batch_size"], shuffle=True
+       dataset["train"], batch_size=config["batch_size"], shuffle=True
     )
     testloader = DataLoader(
-        valid_dataset, batch_size=config["batch_size"], shuffle=True
+        dataset["valid"], batch_size=config["batch_size"], shuffle=True
     )
 
     model = config["model_class"](config)
